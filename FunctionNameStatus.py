@@ -1,6 +1,5 @@
 import sublime
 import sublime_plugin
-
 import re
 import sys
 from time import time
@@ -17,43 +16,45 @@ def plugin_loaded():
             Pref.display_class     = settings.get('display_class', False)
             Pref.display_function  = settings.get('display_function', True)
             Pref.display_arguments = settings.get('display_arguments', False)
-            Pref.wait_time         = 0.12
+            Pref.wait_time         = settings.get('update_delay', 0.50)
             Pref.time              = time()
-    
+
     settings = sublime.load_settings('Function Name Display.sublime-settings')
     Pref = Pref()
     Pref.load()
     settings.add_on_change('reload', lambda:Pref.load())
 
-if sys.version_info[0] == 2:
-    plugin_loaded()
-
 clean_name = re.compile('^\s*(public\s+|private\s+|protected\s+|static\s+|function\s+|def\s+)+', re.I)
 
 class FunctionNameStatusEventHandler(sublime_plugin.EventListener):
+
+    def __init__(self):
+        self.pending_deferred_task = False
+
     # on_activated_async seems to not fire on startup
     def on_activated(self, view):
         Pref.time = time()
         view.settings().set('function_name_status_row', -1)
-        sublime.set_timeout(lambda:self.display_current_class_and_function(view, 'activated'), 0)
+        self.display_current_class_and_function(view, 'activated')
 
-    # why is it here?
-    def on_modified(self, view):
+    def on_selection_modified_async(self, view):
         Pref.time = time()
-
-    # could be async, but ST2 does not support that
-    def on_selection_modified(self, view):
-        now = time()
-        if now - Pref.time > Pref.wait_time:
-            sublime.set_timeout(lambda:self.display_current_class_and_function(view, 'selection_modified'), 0)
-        else:
-            sublime.set_timeout(lambda:self.display_current_class_and_function_delayed(view), int(1000*Pref.wait_time))
-        Pref.time = now
+        if not self.pending_deferred_task:
+            self.pending_deferred_task = True
+            sublime.set_timeout_async(lambda:self.display_current_class_and_function_delayed(view),
+                                      int(1000 * Pref.wait_time))
 
     def display_current_class_and_function_delayed(self, view):
+        last_time = Pref.time
         now = time()
-        if (now - Pref.time >= Pref.wait_time):
+        remaining_time = int(1000 * (Pref.wait_time - (now - last_time)))
+        epsilon = 100
+        if (remaining_time < 100):
+            self.pending_deferred_task = False
             self.display_current_class_and_function(view, 'selection_modified:delayed')
+        else:
+            sublime.set_timeout_async(lambda:self.display_current_class_and_function_delayed(view),
+                                      remaining_time)
 
     # display the current class and function name
     def display_current_class_and_function(self, view, where):
