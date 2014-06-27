@@ -12,12 +12,12 @@
 				"children":
 				[
 					{
-						"caption": "Function Name Display",
+						"caption": "SublimeFunctionNameDisplay",
 						"children":
 						[
 							{
 								"command": "open_file",
-								"args": {"file": "${packages}/Function Name Display/Function Name Display.sublime-settings"},
+								"args": {"file": "${packages}/SublimeFunctionNameDisplay/Function Name Display.sublime-settings"},
 								"caption": "Settings – Default"
 							},
 							{
