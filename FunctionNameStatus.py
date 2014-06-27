@@ -31,8 +31,7 @@ class FunctionNameStatusEventHandler(sublime_plugin.EventListener):
     def __init__(self):
         self.pending_deferred_task = False
 
-    # on_activated_async seems to not fire on startup
-    def on_activated(self, view):
+    def on_activated_async(self, view):
         Pref.time = time()
         view.settings().set('function_name_status_row', -1)
         self.display_current_class_and_function(view, 'activated')
